@@ -9,4 +9,7 @@ import (
 // microcluster.
 var Endpoints = []rest.Endpoint{
 	nodesCmd,
+	terraformStateCmd,
+        terraformLockCmd,
+        terraformUnlockCmd,
 }
