@@ -12,6 +12,7 @@ import (
 // Each entry will increase the database schema version by one, and will be applied after internal schema updates.
 var SchemaExtensions = map[int]schema.Update{
 	1: NodesSchemaUpdate,
+	2: ConfigSchemaUpdate,
 }
 
 func NodesSchemaUpdate(ctx context.Context, tx *sql.Tx) error {
@@ -23,6 +24,21 @@ CREATE TABLE nodes (
   role                          TEXT     NOT  NULL,
   FOREIGN KEY (member_id) REFERENCES "internal_cluster_members" (id)
   UNIQUE(member_id, name)
+);
+  `
+
+	_, err := tx.Exec(stmt)
+
+	return err
+}
+
+func ConfigSchemaUpdate(ctx context.Context, tx *sql.Tx) error {
+	stmt := `
+CREATE TABLE config (
+  id                            INTEGER  PRIMARY KEY AUTOINCREMENT NOT NULL,
+  key                           TEXT     NOT  NULL,
+  value                         TEXT     NOT  NULL,
+  UNIQUE(key)
 );
   `
 
