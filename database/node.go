@@ -9,8 +9,7 @@ package database
 //go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node objects-by-Member-and-Name table=nodes
 //go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node id table=nodes
 //go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node create table=nodes
-//go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node delete-by-Member table=nodes
-//go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node delete-by-Member-and-Name table=nodes
+//go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node delete-by-Name table=nodes
 //go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node update table=nodes
 //
 //go:generate mapper method -i -d github.com/canonical/microcluster/cluster -e node GetMany
@@ -18,8 +17,7 @@ package database
 //go:generate mapper method -i -d github.com/canonical/microcluster/cluster -e node ID
 //go:generate mapper method -i -d github.com/canonical/microcluster/cluster -e node Exists
 //go:generate mapper method -i -d github.com/canonical/microcluster/cluster -e node Create
-//go:generate mapper method -i -d github.com/canonical/microcluster/cluster -e node DeleteOne-by-Member-and-Name
-//go:generate mapper method -i -d github.com/canonical/microcluster/cluster -e node DeleteMany-by-Member
+//go:generate mapper method -i -d github.com/canonical/microcluster/cluster -e node DeleteOne-by-Name
 //go:generate mapper method -i -d github.com/canonical/microcluster/cluster -e node Update
 
 // Node is used to track Node information.

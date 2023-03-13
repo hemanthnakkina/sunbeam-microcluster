@@ -59,12 +59,8 @@ INSERT INTO nodes (member_id, name, role)
   VALUES ((SELECT internal_cluster_members.id FROM internal_cluster_members WHERE internal_cluster_members.name = ?), ?, ?)
 `)
 
-var nodeDeleteByMember = cluster.RegisterStmt(`
-DELETE FROM nodes WHERE member_id = (SELECT internal_cluster_members.id FROM internal_cluster_members WHERE internal_cluster_members.name = ?)
-`)
-
-var nodeDeleteByMemberAndName = cluster.RegisterStmt(`
-DELETE FROM nodes WHERE member_id = (SELECT internal_cluster_members.id FROM internal_cluster_members WHERE internal_cluster_members.name = ?) AND name = ?
+var nodeDeleteByName = cluster.RegisterStmt(`
+DELETE FROM nodes WHERE name = ?
 `)
 
 var nodeUpdate = cluster.RegisterStmt(`
@@ -342,14 +338,14 @@ func CreateNode(ctx context.Context, tx *sql.Tx, object Node) (int64, error) {
 }
 
 // DeleteNode deletes the node matching the given key parameters.
-// generator: node DeleteOne-by-Member-and-Name
-func DeleteNode(ctx context.Context, tx *sql.Tx, member string, name string) error {
-	stmt, err := cluster.Stmt(tx, nodeDeleteByMemberAndName)
+// generator: node DeleteOne-by-Name
+func DeleteNode(ctx context.Context, tx *sql.Tx, name string) error {
+	stmt, err := cluster.Stmt(tx, nodeDeleteByName)
 	if err != nil {
-		return fmt.Errorf("Failed to get \"nodeDeleteByMemberAndName\" prepared statement: %w", err)
+		return fmt.Errorf("Failed to get \"nodeDeleteByName\" prepared statement: %w", err)
 	}
 
-	result, err := stmt.Exec(member, name)
+	result, err := stmt.Exec(name)
 	if err != nil {
 		return fmt.Errorf("Delete \"nodes\": %w", err)
 	}
@@ -363,27 +359,6 @@ func DeleteNode(ctx context.Context, tx *sql.Tx, member string, name string) err
 		return api.StatusErrorf(http.StatusNotFound, "Node not found")
 	} else if n > 1 {
 		return fmt.Errorf("Query deleted %d Node rows instead of 1", n)
-	}
-
-	return nil
-}
-
-// DeleteNodes deletes the node matching the given key parameters.
-// generator: node DeleteMany-by-Member
-func DeleteNodes(ctx context.Context, tx *sql.Tx, member string) error {
-	stmt, err := cluster.Stmt(tx, nodeDeleteByMember)
-	if err != nil {
-		return fmt.Errorf("Failed to get \"nodeDeleteByMember\" prepared statement: %w", err)
-	}
-
-	result, err := stmt.Exec(member)
-	if err != nil {
-		return fmt.Errorf("Delete \"nodes\": %w", err)
-	}
-
-	_, err = result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("Fetch affected rows: %w", err)
 	}
 
 	return nil
