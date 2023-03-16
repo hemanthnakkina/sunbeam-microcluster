@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/canonical/microcluster v0.0.0-20230223162231-6380c29ea22e
+	github.com/gorilla/mux v1.8.0
 	github.com/lxc/lxd v0.0.0-20230223142449-e78b7f2b47d0
 	github.com/spf13/cobra v1.6.1
 )
@@ -21,7 +22,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/renameio v1.0.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/juju/webbrowser v1.0.0 // indirect

@@ -53,3 +53,20 @@ func AddNode(s *state.State, name string, role string) error {
 
         return nil
 }
+
+func DeleteNode(s *state.State, name string) error {
+        // Delete node from the database.
+        err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
+		err := database.DeleteNode(ctx, tx, name)
+                if err != nil {
+                        return fmt.Errorf("Failed to delete node: %w", err)
+                }
+
+                return nil
+        })
+        if err != nil {
+                return err
+        }
+
+        return nil
+}
