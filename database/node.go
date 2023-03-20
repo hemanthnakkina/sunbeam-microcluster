@@ -6,7 +6,8 @@ package database
 //go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node objects table=nodes
 //go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node objects-by-Member table=nodes
 //go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node objects-by-Name table=nodes
-//go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node objects-by-Member-and-Name table=nodes
+//go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node objects-by-Role table=nodes
+//go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node objects-by-MachineID table=nodes
 //go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node id table=nodes
 //go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node create table=nodes
 //go:generate mapper stmt -d github.com/canonical/microcluster/cluster -e node delete-by-Name table=nodes
@@ -22,14 +23,17 @@ package database
 
 // Node is used to track Node information.
 type Node struct {
-	ID     int
-	Member string `db:"primary=yes&join=internal_cluster_members.name&joinon=nodes.member_id"`
-	Name   string `db:"primary=yes"`
-	Role   string
+	ID        int
+	Member    string `db:"join=internal_cluster_members.name&joinon=nodes.member_id"`
+	Name      string `db:"primary=yes"`
+	Role      string
+	MachineID int
 }
 
 // NodeFilter is a required struct for use with lxd-generate. It is used for filtering fields on database fetches.
 type NodeFilter struct {
-	Member *string
-	Name   *string
+	Member    *string
+	Name      *string
+	Role      *string
+	MachineID *int
 }

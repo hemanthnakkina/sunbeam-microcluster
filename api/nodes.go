@@ -26,6 +26,7 @@ var nodesCmd = rest.Endpoint{
 var nodeCmd = rest.Endpoint{
 	Path: "nodes/{name}",
 
+	Put: rest.EndpointAction{Handler: cmdNodesPut, ProxyTarget: true},
 	Delete: rest.EndpointAction{Handler: cmdNodesDelete, ProxyTarget: true},
 }
 
@@ -46,7 +47,28 @@ func cmdNodesPost(s *state.State, r *http.Request) response.Response {
                 return response.InternalError(err)
         }
 
-        err = sunbeam.AddNode(s, req.Name, req.Role)
+        err = sunbeam.AddNode(s, req.Name, req.Role, req.MachineID)
+        if err != nil {
+                return response.InternalError(err)
+        }
+
+        return response.EmptySyncResponse
+}
+
+func cmdNodesPut(s *state.State, r *http.Request) response.Response {
+        var req types.Node
+
+	name, err := url.PathUnescape(mux.Vars(r)["name"])
+	if err != nil {
+                return response.InternalError(err)
+        }
+
+        err = json.NewDecoder(r.Body).Decode(&req)
+        if err != nil {
+                return response.InternalError(err)
+        }
+
+	err = sunbeam.UpdateNode(s, name, req.Role, req.MachineID)
         if err != nil {
                 return response.InternalError(err)
         }

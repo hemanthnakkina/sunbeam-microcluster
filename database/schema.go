@@ -22,9 +22,10 @@ CREATE TABLE nodes (
   id                            INTEGER  PRIMARY KEY AUTOINCREMENT NOT NULL,
   member_id                     INTEGER  NOT  NULL,
   name                          TEXT     NOT  NULL,
-  role                          TEXT     NOT  NULL,
+  role                          TEXT,
+  machine_id                    INTEGER,
   FOREIGN KEY (member_id) REFERENCES "internal_cluster_members" (id)
-  UNIQUE(member_id, name)
+  UNIQUE(name)
 );
   `
 
