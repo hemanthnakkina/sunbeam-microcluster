@@ -55,7 +55,7 @@ func cmdJujuUsersPost(s *state.State, r *http.Request) response.Response {
 }
 
 func cmdJujuUsersDelete(s *state.State, r *http.Request) response.Response {
-	name, err := url.PathUnescape(mux.Vars(r)["username"])
+	name, err := url.PathUnescape(mux.Vars(r)["name"])
         if err != nil {
                 return response.SmartError(err)
         }
