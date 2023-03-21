@@ -9,6 +9,7 @@ import (
         "github.com/canonical/microcluster/rest"
         "github.com/canonical/microcluster/state"
         "github.com/lxc/lxd/lxd/response"
+	"github.com/lxc/lxd/shared/api"
 
         "github.com/openstack-snaps/sunbeam-microcluster/api/types"
         "github.com/openstack-snaps/sunbeam-microcluster/sunbeam"
@@ -26,6 +27,7 @@ var nodesCmd = rest.Endpoint{
 var nodeCmd = rest.Endpoint{
 	Path: "nodes/{name}",
 
+  Get: rest.EndpointAction{Handler: cmdNodeGet, ProxyTarget: true},
 	Put: rest.EndpointAction{Handler: cmdNodesPut, ProxyTarget: true},
 	Delete: rest.EndpointAction{Handler: cmdNodesDelete, ProxyTarget: true},
 }
@@ -37,6 +39,25 @@ func cmdNodesGet(s *state.State, r *http.Request) response.Response {
         }
 
         return response.SyncResponse(true, nodes)
+}
+
+func cmdNodeGet(s *state.State, r *http.Request) response.Response {
+	var name string
+	name, err := url.PathUnescape(mux.Vars(r)["name"])
+	if err != nil {
+		return response.InternalError(err)
+	}
+	node, err := sunbeam.GetNode(s, name)
+	if err != nil {
+		if err, ok := err.(api.StatusError); ok {
+			if err.Status() == http.StatusNotFound {
+				return response.NotFound(err)
+			}
+		}
+		return response.InternalError(err)
+	}
+
+	return response.SyncResponse(true, node)
 }
 
 func cmdNodesPost(s *state.State, r *http.Request) response.Response {
