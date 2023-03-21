@@ -13,6 +13,7 @@ import (
 var SchemaExtensions = map[int]schema.Update{
 	1: NodesSchemaUpdate,
 	2: ConfigSchemaUpdate,
+	3: JujuUserSchemaUpdate,
 }
 
 func NodesSchemaUpdate(ctx context.Context, tx *sql.Tx) error {
@@ -21,9 +22,10 @@ CREATE TABLE nodes (
   id                            INTEGER  PRIMARY KEY AUTOINCREMENT NOT NULL,
   member_id                     INTEGER  NOT  NULL,
   name                          TEXT     NOT  NULL,
-  role                          TEXT     NOT  NULL,
+  role                          TEXT,
+  machine_id                    INTEGER,
   FOREIGN KEY (member_id) REFERENCES "internal_cluster_members" (id)
-  UNIQUE(member_id, name)
+  UNIQUE(name)
 );
   `
 
@@ -39,6 +41,21 @@ CREATE TABLE config (
   key                           TEXT     NOT  NULL,
   value                         TEXT     NOT  NULL,
   UNIQUE(key)
+);
+  `
+
+	_, err := tx.Exec(stmt)
+
+	return err
+}
+
+func JujuUserSchemaUpdate(ctx context.Context, tx *sql.Tx) error {
+	stmt := `
+CREATE TABLE jujuuser (
+  id                            INTEGER  PRIMARY KEY AUTOINCREMENT NOT NULL,
+  username                      TEXT     NOT  NULL,
+  token                         TEXT     NOT  NULL,
+  UNIQUE(username)
 );
   `
 

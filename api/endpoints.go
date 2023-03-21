@@ -11,6 +11,8 @@ var Endpoints = []rest.Endpoint{
 	nodesCmd,
 	nodeCmd,
 	terraformStateCmd,
-        terraformLockCmd,
-        terraformUnlockCmd,
+	terraformLockCmd,
+	terraformUnlockCmd,
+	jujuusersCmd,
+	jujuuserCmd,
 }

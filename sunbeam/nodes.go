@@ -25,6 +25,7 @@ func ListNodes(s *state.State) (types.Nodes, error) {
                         nodes = append(nodes, types.Node{
                                 Name: node.Name,
                                 Role:  node.Role,
+				MachineID: node.MachineID,
                         })
                 }
 
@@ -37,14 +38,44 @@ func ListNodes(s *state.State) (types.Nodes, error) {
         return nodes, nil
 }
 
-func AddNode(s *state.State, name string, role string) error {
+func AddNode(s *state.State, name string, role string, machineid int) error {
         // Add node to the database.
         err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
-                _, err := database.CreateNode(ctx, tx, database.Node{Member: s.Name(), Name: name, Role: role})
+		_, err := database.CreateNode(ctx, tx, database.Node{Member: s.Name(), Name: name, Role: role, MachineID: machineid})
                 if err != nil {
                         return fmt.Errorf("Failed to record node: %w", err)
                 }
 
+                return nil
+        })
+        if err != nil {
+                return err
+        }
+
+        return nil
+}
+
+func UpdateNode(s *state.State, name string, role string, machineid int) error {
+        // Update node to the database.
+        err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
+		node, err := database.GetNode(ctx, tx, name)
+		if err != nil {
+			return fmt.Errorf("Failed to retrieve node details: %w", err)
+		}
+
+		if role == "" {
+			role = node.Role
+		}
+		if machineid == 0 {
+			machineid = node.MachineID
+		}
+
+		err = database.UpdateNode(ctx, tx, name, database.Node{Member: s.Name(), Name: name, Role: role, MachineID: machineid})
+                if err != nil {
+                        return fmt.Errorf("Failed to update record node: %w", err)
+                }
+
+		node, err = database.GetNode(ctx, tx, name)
                 return nil
         })
         if err != nil {
