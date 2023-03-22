@@ -18,7 +18,7 @@ func ListNodes(s *state.State) (types.Nodes, error) {
         err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
                 records, err := database.GetNodes(ctx, tx)
                 if err != nil {
-                        return fmt.Errorf("Failed to fetch node: %w", err)
+                        return fmt.Errorf("Failed to fetch nodes: %w", err)
                 }
 
                 for _, node := range records {
@@ -36,6 +36,24 @@ func ListNodes(s *state.State) (types.Nodes, error) {
         }
 
         return nodes, nil
+}
+
+func GetNode(s *state.State, name string) (types.Node, error) {
+	node := types.Node{}
+	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
+		record, err := database.GetNode(ctx, tx, name)
+		if err != nil {
+			return err
+		}
+
+		node.Name = record.Name
+		node.Role = record.Role
+		node.MachineID = record.MachineID
+
+		return nil
+	})
+
+	return node, err
 }
 
 func AddNode(s *state.State, name string, role string, machineid int) error {
