@@ -1,43 +1,45 @@
 package sunbeam
 
 import (
-        "context"
-        "database/sql"
-        "fmt"
+	"context"
+	"database/sql"
+	"fmt"
 
-        "github.com/canonical/microcluster/state"
+	"github.com/canonical/microcluster/state"
 
-        "github.com/openstack-snaps/sunbeam-microcluster/api/types"
-        "github.com/openstack-snaps/sunbeam-microcluster/database"
+	"github.com/openstack-snaps/sunbeam-microcluster/api/types"
+	"github.com/openstack-snaps/sunbeam-microcluster/database"
 )
 
+// ListNodes return all the nodes
 func ListNodes(s *state.State) (types.Nodes, error) {
-        nodes := types.Nodes{}
+	nodes := types.Nodes{}
 
-        // Get the nodes from the database.
-        err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
-                records, err := database.GetNodes(ctx, tx)
-                if err != nil {
-                        return fmt.Errorf("Failed to fetch nodes: %w", err)
-                }
+	// Get the nodes from the database.
+	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
+		records, err := database.GetNodes(ctx, tx)
+		if err != nil {
+			return fmt.Errorf("Failed to fetch nodes: %w", err)
+		}
 
-                for _, node := range records {
-                        nodes = append(nodes, types.Node{
-                                Name: node.Name,
-                                Role:  node.Role,
+		for _, node := range records {
+			nodes = append(nodes, types.Node{
+				Name:      node.Name,
+				Role:      node.Role,
 				MachineID: node.MachineID,
-                        })
-                }
+			})
+		}
 
-                return nil
-        })
-        if err != nil {
-                return nil, err
-        }
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 
-        return nodes, nil
+	return nodes, nil
 }
 
+// GetNode returns a Node with the given name
 func GetNode(s *state.State, name string) (types.Node, error) {
 	node := types.Node{}
 	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
@@ -56,26 +58,28 @@ func GetNode(s *state.State, name string) (types.Node, error) {
 	return node, err
 }
 
+// AddNode adds a node to the database
 func AddNode(s *state.State, name string, role string, machineid int) error {
-        // Add node to the database.
-        err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
+	// Add node to the database.
+	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
 		_, err := database.CreateNode(ctx, tx, database.Node{Member: s.Name(), Name: name, Role: role, MachineID: machineid})
-                if err != nil {
-                        return fmt.Errorf("Failed to record node: %w", err)
-                }
+		if err != nil {
+			return fmt.Errorf("Failed to record node: %w", err)
+		}
 
-                return nil
-        })
-        if err != nil {
-                return err
-        }
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 
-        return nil
+	return nil
 }
 
+// UpdateNode updates a node record in the database
 func UpdateNode(s *state.State, name string, role string, machineid int) error {
-        // Update node to the database.
-        err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
+	// Update node to the database.
+	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
 		node, err := database.GetNode(ctx, tx, name)
 		if err != nil {
 			return fmt.Errorf("Failed to retrieve node details: %w", err)
@@ -89,33 +93,33 @@ func UpdateNode(s *state.State, name string, role string, machineid int) error {
 		}
 
 		err = database.UpdateNode(ctx, tx, name, database.Node{Member: s.Name(), Name: name, Role: role, MachineID: machineid})
-                if err != nil {
-                        return fmt.Errorf("Failed to update record node: %w", err)
-                }
+		if err != nil {
+			return fmt.Errorf("Failed to update record node: %w", err)
+		}
 
-		node, err = database.GetNode(ctx, tx, name)
-                return nil
-        })
-        if err != nil {
-                return err
-        }
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 
-        return nil
+	return nil
 }
 
+// DeleteNode deletes a node from database
 func DeleteNode(s *state.State, name string) error {
-        // Delete node from the database.
-        err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
+	// Delete node from the database.
+	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
 		err := database.DeleteNode(ctx, tx, name)
-                if err != nil {
-                        return fmt.Errorf("Failed to delete node: %w", err)
-                }
+		if err != nil {
+			return fmt.Errorf("Failed to delete node: %w", err)
+		}
 
-                return nil
-        })
-        if err != nil {
-                return err
-        }
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 
-        return nil
+	return nil
 }

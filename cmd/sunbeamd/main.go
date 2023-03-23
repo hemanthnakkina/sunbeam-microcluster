@@ -34,7 +34,7 @@ type cmdGlobal struct {
 	flagLogVerbose bool
 }
 
-func (c *cmdGlobal) Run(cmd *cobra.Command, args []string) error {
+func (c *cmdGlobal) Run(_ *cobra.Command, _ []string) error {
 	Debug = c.flagLogDebug
 	Verbose = c.flagLogVerbose
 
@@ -59,7 +59,7 @@ func (c *cmdDaemon) Command() *cobra.Command {
 	return cmd
 }
 
-func (c *cmdDaemon) Run(cmd *cobra.Command, args []string) error {
+func (c *cmdDaemon) Run(_ *cobra.Command, _ []string) error {
 	m, err := microcluster.App(context.Background(), microcluster.Args{StateDir: c.flagStateDir, Verbose: c.global.flagLogVerbose, Debug: c.global.flagLogDebug})
 	if err != nil {
 		return err

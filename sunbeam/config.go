@@ -1,3 +1,4 @@
+// Package sunbeam provides the interface to talk to database
 package sunbeam
 
 import (
@@ -11,6 +12,7 @@ import (
 	"github.com/openstack-snaps/sunbeam-microcluster/database"
 )
 
+// GetConfig returns the ConfigItem based on key from the database
 func GetConfig(s *state.State, key string) (string, error) {
 	var value string
 
@@ -30,6 +32,7 @@ func GetConfig(s *state.State, key string) (string, error) {
 	return value, nil
 }
 
+// CreateConfig adds a new ConfigItem to the database
 func CreateConfig(s *state.State, key string, value string) error {
 
 	return s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
@@ -41,6 +44,7 @@ func CreateConfig(s *state.State, key string, value string) error {
 	})
 }
 
+// UpdateConfig updates a ConfigItem in the database
 func UpdateConfig(s *state.State, key string, value string) error {
 	configItem := database.ConfigItem{Key: key, Value: value}
 
@@ -57,6 +61,7 @@ func UpdateConfig(s *state.State, key string, value string) error {
 	})
 }
 
+// DeleteConfig deletes a ConfigItem from the database
 func DeleteConfig(s *state.State, key string) error {
 	return s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
 		return database.DeleteConfigItem(ctx, tx, key)
