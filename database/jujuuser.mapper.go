@@ -270,7 +270,7 @@ func CreateJujuUser(ctx context.Context, tx *sql.Tx, object JujuUser) (int64, er
 
 // DeleteJujuUser deletes the JujuUser matching the given key parameters.
 // generator: JujuUser DeleteOne-by-Username
-func DeleteJujuUser(ctx context.Context, tx *sql.Tx, username string) error {
+func DeleteJujuUser(_ context.Context, tx *sql.Tx, username string) error {
 	stmt, err := cluster.Stmt(tx, jujuUserDeleteByUsername)
 	if err != nil {
 		return fmt.Errorf("Failed to get \"jujuUserDeleteByUsername\" prepared statement: %w", err)

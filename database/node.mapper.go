@@ -370,7 +370,7 @@ func CreateNode(ctx context.Context, tx *sql.Tx, object Node) (int64, error) {
 
 // DeleteNode deletes the node matching the given key parameters.
 // generator: node DeleteOne-by-Name
-func DeleteNode(ctx context.Context, tx *sql.Tx, name string) error {
+func DeleteNode(_ context.Context, tx *sql.Tx, name string) error {
 	stmt, err := cluster.Stmt(tx, nodeDeleteByName)
 	if err != nil {
 		return fmt.Errorf("Failed to get \"nodeDeleteByName\" prepared statement: %w", err)

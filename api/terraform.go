@@ -47,7 +47,7 @@ var terraformUnlockCmd = rest.Endpoint{
         Post: rest.EndpointAction{Handler: cmdUnlockPost, AllowUntrusted: true},
 }
 
-func cmdStateGet(s *state.State, r *http.Request) response.Response {
+func cmdStateGet(s *state.State, _ *http.Request) response.Response {
         state, err := sunbeam.GetTerraformState(s)
         if err != nil {
                 return response.InternalError(err)
@@ -76,7 +76,7 @@ func cmdStatePost(s *state.State, r *http.Request) response.Response {
         return response.EmptySyncResponse
 }
 
-func cmdLockGet(s *state.State, r *http.Request) response.Response {
+func cmdLockGet(s *state.State, _ *http.Request) response.Response {
         lock, err := sunbeam.GetTerraformLock(s)
         if err != nil {
                 return response.InternalError(err)
@@ -98,14 +98,22 @@ func cmdLockPost(s *state.State, r *http.Request) response.Response {
                 return response.InternalError(err)
         }
 
-	lock_in_db, err := sunbeam.GetTerraformLock(s)
-	err = json.Unmarshal([]byte(lock_in_db), &dbLock)
+	lockInDb, err := sunbeam.GetTerraformLock(s)
+	if err != nil {
+                return response.InternalError(err)
+        }
+
+	err = json.Unmarshal([]byte(lockInDb), &dbLock)
         if err != nil {
                 return response.InternalError(err)
         }
 
         if (dbLock.ID == "") {
 		j, err := json.Marshal(reqLock)
+		if err != nil {
+                        return response.InternalError(err)
+                }
+
         	err = sunbeam.UpdateTerraformLock(s, string(j))	
         	if err != nil {
                 	return response.InternalError(err)
@@ -138,8 +146,12 @@ func cmdUnlockPost(s *state.State, r *http.Request) response.Response {
                 return response.InternalError(err)
         }
 
-	lock_in_db, err := sunbeam.GetTerraformLock(s)
-        err = json.Unmarshal([]byte(lock_in_db), &dbLock)
+	lockInDb, err := sunbeam.GetTerraformLock(s)
+	if err != nil {
+                return response.InternalError(err)
+        }
+
+        err = json.Unmarshal([]byte(lockInDb), &dbLock)
         if err != nil {
                 return response.InternalError(err)
         }

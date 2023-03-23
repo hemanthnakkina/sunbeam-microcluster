@@ -29,7 +29,7 @@ var jujuuserCmd = rest.Endpoint{
 	Delete: rest.EndpointAction{Handler: cmdJujuUsersDelete, ProxyTarget: true},
 }
 
-func cmdJujuUsersGet(s *state.State, r *http.Request) response.Response {
+func cmdJujuUsersGet(s *state.State, _ *http.Request) response.Response {
         users, err := sunbeam.ListJujuUsers(s)
         if err != nil {
                 return response.InternalError(err)

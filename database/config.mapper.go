@@ -270,7 +270,7 @@ func CreateConfigItem(ctx context.Context, tx *sql.Tx, object ConfigItem) (int64
 
 // DeleteConfigItem deletes the ConfigItem matching the given key parameters.
 // generator: ConfigItem DeleteOne-by-Key
-func DeleteConfigItem(ctx context.Context, tx *sql.Tx, key string) error {
+func DeleteConfigItem(_ context.Context, tx *sql.Tx, key string) error {
 	stmt, err := cluster.Stmt(tx, configItemDeleteByKey)
 	if err != nil {
 		return fmt.Errorf("Failed to get \"configItemDeleteByKey\" prepared statement: %w", err)

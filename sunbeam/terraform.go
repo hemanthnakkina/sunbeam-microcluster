@@ -11,6 +11,7 @@ import (
 	"github.com/openstack-snaps/sunbeam-microcluster/database"
 )
 
+// GetTerraformState returns the terraform state from the database
 func GetTerraformState(s *state.State) (string, error) {
 	state := "{}"
 
@@ -22,10 +23,9 @@ func GetTerraformState(s *state.State) (string, error) {
                                 return nil
                         }
                         return fmt.Errorf("Failed to fetch terraform lock: %w", err)
-                } else {
-		    state = record.Value
-		}
+                }
 
+		state = record.Value
 		return nil
 	})
 	if err != nil {
@@ -35,6 +35,7 @@ func GetTerraformState(s *state.State) (string, error) {
 	return state, nil
 }
 
+// UpdateTerraformState updates the terraform state record in the database
 func UpdateTerraformState(s *state.State, state string) error {
 	c := database.ConfigItem{Key: "TerraformState", Value: state}
 
@@ -57,6 +58,7 @@ func UpdateTerraformState(s *state.State, state string) error {
 	return nil
 }
 
+// GetTerraformLock returns the terraform lock from the database
 func GetTerraformLock(s *state.State) (string, error) {
         lock := "{}"
 
@@ -68,10 +70,9 @@ func GetTerraformLock(s *state.State) (string, error) {
                                 return nil
                         }
                         return fmt.Errorf("Failed to fetch terraform lock: %w", err)
-                } else {
-                	lock = record.Value
-		}
+                }
 
+                lock = record.Value
                 return nil
         })
         if err != nil {
@@ -81,6 +82,7 @@ func GetTerraformLock(s *state.State) (string, error) {
         return lock, nil
 }
 
+// UpdateTerraformLock updates the terraform lock record in the database
 func UpdateTerraformLock(s *state.State, lock string) error {
         c := database.ConfigItem{Key: "TerraformLock", Value: lock}
 

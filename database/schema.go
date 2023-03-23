@@ -16,7 +16,8 @@ var SchemaExtensions = map[int]schema.Update{
 	3: JujuUserSchemaUpdate,
 }
 
-func NodesSchemaUpdate(ctx context.Context, tx *sql.Tx) error {
+// NodesSchemaUpdate is schema for table nodes
+func NodesSchemaUpdate(_ context.Context, tx *sql.Tx) error {
 	stmt := `
 CREATE TABLE nodes (
   id                            INTEGER  PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -34,7 +35,8 @@ CREATE TABLE nodes (
 	return err
 }
 
-func ConfigSchemaUpdate(ctx context.Context, tx *sql.Tx) error {
+// ConfigSchemaUpdate is schema for table config
+func ConfigSchemaUpdate(_ context.Context, tx *sql.Tx) error {
 	stmt := `
 CREATE TABLE config (
   id                            INTEGER  PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -49,7 +51,8 @@ CREATE TABLE config (
 	return err
 }
 
-func JujuUserSchemaUpdate(ctx context.Context, tx *sql.Tx) error {
+// JujuUserSchemaUpdate is schema for table jujuuser
+func JujuUserSchemaUpdate(_ context.Context, tx *sql.Tx) error {
 	stmt := `
 CREATE TABLE jujuuser (
   id                            INTEGER  PRIMARY KEY AUTOINCREMENT NOT NULL,

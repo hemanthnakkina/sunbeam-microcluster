@@ -11,6 +11,7 @@ import (
         "github.com/openstack-snaps/sunbeam-microcluster/database"
 )
 
+// ListNodes return all the nodes
 func ListNodes(s *state.State) (types.Nodes, error) {
         nodes := types.Nodes{}
 
@@ -38,6 +39,7 @@ func ListNodes(s *state.State) (types.Nodes, error) {
         return nodes, nil
 }
 
+// GetNode returns a Node with the given name
 func GetNode(s *state.State, name string) (types.Node, error) {
 	node := types.Node{}
 	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
@@ -56,6 +58,7 @@ func GetNode(s *state.State, name string) (types.Node, error) {
 	return node, err
 }
 
+// AddNode adds a node to the database
 func AddNode(s *state.State, name string, role string, machineid int) error {
         // Add node to the database.
         err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
@@ -73,6 +76,7 @@ func AddNode(s *state.State, name string, role string, machineid int) error {
         return nil
 }
 
+// UpdateNode updates a node record in the database
 func UpdateNode(s *state.State, name string, role string, machineid int) error {
         // Update node to the database.
         err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
@@ -93,7 +97,6 @@ func UpdateNode(s *state.State, name string, role string, machineid int) error {
                         return fmt.Errorf("Failed to update record node: %w", err)
                 }
 
-		node, err = database.GetNode(ctx, tx, name)
                 return nil
         })
         if err != nil {
@@ -103,6 +106,7 @@ func UpdateNode(s *state.State, name string, role string, machineid int) error {
         return nil
 }
 
+// DeleteNode deletes a node from database
 func DeleteNode(s *state.State, name string) error {
         // Delete node from the database.
         err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {

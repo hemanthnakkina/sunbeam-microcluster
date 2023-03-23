@@ -1,6 +1,7 @@
 // Package types provides shared types and structs.
 package types
 
+// Lock structure to hold terraform lock details
 type Lock struct {
         ID  string `json:"ID" yaml:"ID"`
         Operation string `json:"Operation" yaml:"Operation"`

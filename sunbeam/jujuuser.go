@@ -11,6 +11,7 @@ import (
         "github.com/openstack-snaps/sunbeam-microcluster/database"
 )
 
+// ListJujuUsers returns the jujuusers from the database
 func ListJujuUsers(s *state.State) (types.JujuUsers, error) {
         users := types.JujuUsers{}
 
@@ -37,6 +38,7 @@ func ListJujuUsers(s *state.State) (types.JujuUsers, error) {
         return users, nil
 }
 
+// AddJujuUser adds a Jujuuser to the database
 func AddJujuUser(s *state.State, name string, token string) error {
         // Add juju user to the database.
         err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
@@ -54,6 +56,7 @@ func AddJujuUser(s *state.State, name string, token string) error {
         return nil
 }
 
+// DeleteJujuUser deletes the juju user record from the database
 func DeleteJujuUser(s *state.State, name string) error {
         // Delete juju user from the database.
         err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {

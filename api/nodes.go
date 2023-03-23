@@ -32,7 +32,7 @@ var nodeCmd = rest.Endpoint{
 	Delete: rest.EndpointAction{Handler: cmdNodesDelete, ProxyTarget: true},
 }
 
-func cmdNodesGet(s *state.State, r *http.Request) response.Response {
+func cmdNodesGet(s *state.State, _ *http.Request) response.Response {
         nodes, err := sunbeam.ListNodes(s)
         if err != nil {
                 return response.InternalError(err)
