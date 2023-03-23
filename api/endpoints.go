@@ -15,4 +15,5 @@ var Endpoints = []rest.Endpoint{
 	terraformUnlockCmd,
 	jujuusersCmd,
 	jujuuserCmd,
+	configCmd,
 }
