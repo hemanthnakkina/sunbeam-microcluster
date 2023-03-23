@@ -1,44 +1,44 @@
 package api
 
 import (
-        "encoding/json"
-        "net/http"
+	"encoding/json"
+	"net/http"
 	"net/url"
 
+	"github.com/canonical/microcluster/rest"
+	"github.com/canonical/microcluster/state"
 	"github.com/gorilla/mux"
-        "github.com/canonical/microcluster/rest"
-        "github.com/canonical/microcluster/state"
-        "github.com/lxc/lxd/lxd/response"
+	"github.com/lxc/lxd/lxd/response"
 	"github.com/lxc/lxd/shared/api"
 
-        "github.com/openstack-snaps/sunbeam-microcluster/api/types"
-        "github.com/openstack-snaps/sunbeam-microcluster/sunbeam"
+	"github.com/openstack-snaps/sunbeam-microcluster/api/types"
+	"github.com/openstack-snaps/sunbeam-microcluster/sunbeam"
 )
 
 // /1.0/nodes endpoint.
 var nodesCmd = rest.Endpoint{
-        Path: "nodes",
+	Path: "nodes",
 
-        Get: rest.EndpointAction{Handler: cmdNodesGet, ProxyTarget: true},
-        Post: rest.EndpointAction{Handler: cmdNodesPost, ProxyTarget: true},
+	Get:  rest.EndpointAction{Handler: cmdNodesGet, ProxyTarget: true},
+	Post: rest.EndpointAction{Handler: cmdNodesPost, ProxyTarget: true},
 }
 
 // /1.0/nodes/<name> endpoint.
 var nodeCmd = rest.Endpoint{
 	Path: "nodes/{name}",
 
-  Get: rest.EndpointAction{Handler: cmdNodeGet, ProxyTarget: true},
-	Put: rest.EndpointAction{Handler: cmdNodesPut, ProxyTarget: true},
+	Get:    rest.EndpointAction{Handler: cmdNodeGet, ProxyTarget: true},
+	Put:    rest.EndpointAction{Handler: cmdNodesPut, ProxyTarget: true},
 	Delete: rest.EndpointAction{Handler: cmdNodesDelete, ProxyTarget: true},
 }
 
 func cmdNodesGet(s *state.State, _ *http.Request) response.Response {
-        nodes, err := sunbeam.ListNodes(s)
-        if err != nil {
-                return response.InternalError(err)
-        }
+	nodes, err := sunbeam.ListNodes(s)
+	if err != nil {
+		return response.InternalError(err)
+	}
 
-        return response.SyncResponse(true, nodes)
+	return response.SyncResponse(true, nodes)
 }
 
 func cmdNodeGet(s *state.State, r *http.Request) response.Response {
@@ -61,51 +61,51 @@ func cmdNodeGet(s *state.State, r *http.Request) response.Response {
 }
 
 func cmdNodesPost(s *state.State, r *http.Request) response.Response {
-        var req types.Node
+	var req types.Node
 
-        err := json.NewDecoder(r.Body).Decode(&req)
-        if err != nil {
-                return response.InternalError(err)
-        }
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		return response.InternalError(err)
+	}
 
-        err = sunbeam.AddNode(s, req.Name, req.Role, req.MachineID)
-        if err != nil {
-                return response.InternalError(err)
-        }
+	err = sunbeam.AddNode(s, req.Name, req.Role, req.MachineID)
+	if err != nil {
+		return response.InternalError(err)
+	}
 
-        return response.EmptySyncResponse
+	return response.EmptySyncResponse
 }
 
 func cmdNodesPut(s *state.State, r *http.Request) response.Response {
-        var req types.Node
+	var req types.Node
 
 	name, err := url.PathUnescape(mux.Vars(r)["name"])
 	if err != nil {
-                return response.InternalError(err)
-        }
+		return response.InternalError(err)
+	}
 
-        err = json.NewDecoder(r.Body).Decode(&req)
-        if err != nil {
-                return response.InternalError(err)
-        }
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		return response.InternalError(err)
+	}
 
 	err = sunbeam.UpdateNode(s, name, req.Role, req.MachineID)
-        if err != nil {
-                return response.InternalError(err)
-        }
+	if err != nil {
+		return response.InternalError(err)
+	}
 
-        return response.EmptySyncResponse
+	return response.EmptySyncResponse
 }
 
 func cmdNodesDelete(s *state.State, r *http.Request) response.Response {
 	name, err := url.PathUnescape(mux.Vars(r)["name"])
-        if err != nil {
-                return response.SmartError(err)
-        }
-        err = sunbeam.DeleteNode(s, name)
-        if err != nil {
-                return response.InternalError(err)
-        }
+	if err != nil {
+		return response.SmartError(err)
+	}
+	err = sunbeam.DeleteNode(s, name)
+	if err != nil {
+		return response.InternalError(err)
+	}
 
-        return response.EmptySyncResponse
+	return response.EmptySyncResponse
 }

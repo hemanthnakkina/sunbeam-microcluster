@@ -6,6 +6,10 @@ default: build
 build:
 	CGO_LDFLAGS_ALLOW="-Wl,-z,now" go install -v ./cmd/sunbeamd
 
+# Format code
+fmt: 
+	gofmt -s -w .
+
 # Testing targets.
 .PHONY: check
 check: check-static check-unit

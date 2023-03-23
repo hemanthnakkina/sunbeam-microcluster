@@ -51,8 +51,8 @@ func cmdConfigPut(s *state.State, r *http.Request) response.Response {
 	var body bytes.Buffer
 	_, err = body.ReadFrom(r.Body)
 	if err != nil {
-                return response.InternalError(err)
-        }
+		return response.InternalError(err)
+	}
 
 	err = sunbeam.UpdateConfig(s, key, body.String())
 	if err != nil {

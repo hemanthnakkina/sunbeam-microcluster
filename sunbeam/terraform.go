@@ -18,12 +18,12 @@ func GetTerraformState(s *state.State) (string, error) {
 	// Get the state from the database.
 	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
 		record, err := database.GetConfigItem(ctx, tx, "TerraformState")
-                if err != nil {
-                        if strings.Contains(err.Error(), "ConfigItem not found") {
-                                return nil
-                        }
-                        return fmt.Errorf("Failed to fetch terraform lock: %w", err)
-                }
+		if err != nil {
+			if strings.Contains(err.Error(), "ConfigItem not found") {
+				return nil
+			}
+			return fmt.Errorf("Failed to fetch terraform lock: %w", err)
+		}
 
 		state = record.Value
 		return nil
@@ -41,66 +41,66 @@ func UpdateTerraformState(s *state.State, state string) error {
 
 	// Add state to the database.
 	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
-                err := database.UpdateConfigItem(ctx, tx, "TerraformState", c)
-                if (err != nil && strings.Contains(err.Error(), "ConfigItem not found")) {
-                	_, err = database.CreateConfigItem(ctx, tx, c)
-                }
-                if err != nil {
-                        return fmt.Errorf("Failed to record terraform state: %w", err)
-                }
+		err := database.UpdateConfigItem(ctx, tx, "TerraformState", c)
+		if err != nil && strings.Contains(err.Error(), "ConfigItem not found") {
+			_, err = database.CreateConfigItem(ctx, tx, c)
+		}
+		if err != nil {
+			return fmt.Errorf("Failed to record terraform state: %w", err)
+		}
 
-                return nil
-        })
+		return nil
+	})
 	if err != nil {
-                return err
-        }
+		return err
+	}
 
 	return nil
 }
 
 // GetTerraformLock returns the terraform lock from the database
 func GetTerraformLock(s *state.State) (string, error) {
-        lock := "{}"
+	lock := "{}"
 
-        // Get the lock from the database.
-        err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
-                record, err := database.GetConfigItem(ctx, tx, "TerraformLock")
-                if err != nil {
+	// Get the lock from the database.
+	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
+		record, err := database.GetConfigItem(ctx, tx, "TerraformLock")
+		if err != nil {
 			if strings.Contains(err.Error(), "ConfigItem not found") {
-                                return nil
-                        }
-                        return fmt.Errorf("Failed to fetch terraform lock: %w", err)
-                }
+				return nil
+			}
+			return fmt.Errorf("Failed to fetch terraform lock: %w", err)
+		}
 
-                lock = record.Value
-                return nil
-        })
-        if err != nil {
-                return "", err
-        }
+		lock = record.Value
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
 
-        return lock, nil
+	return lock, nil
 }
 
 // UpdateTerraformLock updates the terraform lock record in the database
 func UpdateTerraformLock(s *state.State, lock string) error {
-        c := database.ConfigItem{Key: "TerraformLock", Value: lock}
+	c := database.ConfigItem{Key: "TerraformLock", Value: lock}
 
-        // Add lock to the database.
-        err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
+	// Add lock to the database.
+	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
 		err := database.UpdateConfigItem(ctx, tx, "TerraformLock", c)
-		if (err != nil && strings.Contains(err.Error(), "ConfigItem not found")) {
-                        _, err = database.CreateConfigItem(ctx, tx, c)
-                }
+		if err != nil && strings.Contains(err.Error(), "ConfigItem not found") {
+			_, err = database.CreateConfigItem(ctx, tx, c)
+		}
 		if err != nil {
 			return fmt.Errorf("Failed to record terraform lock: %w", err)
 		}
 
-                return nil
-        })
-        if err != nil {
-                return err
-        }
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 
-        return nil
+	return nil
 }
