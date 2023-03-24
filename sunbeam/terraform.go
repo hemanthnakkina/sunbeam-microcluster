@@ -1,106 +1,142 @@
 package sunbeam
 
 import (
-	"context"
-	"database/sql"
-	"fmt"
-	"strings"
+	"encoding/json"
+	"net/http"
 
 	"github.com/canonical/microcluster/state"
+	"github.com/lxc/lxd/shared/api"
 
-	"github.com/openstack-snaps/sunbeam-microcluster/database"
+	"github.com/openstack-snaps/sunbeam-microcluster/api/types"
 )
 
+const tfstatePrefix = "tfstate-"
+const tflockPrefix = "tflock-"
+
 // GetTerraformState returns the terraform state from the database
-func GetTerraformState(s *state.State) (string, error) {
-	state := "{}"
-
-	// Get the state from the database.
-	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
-		record, err := database.GetConfigItem(ctx, tx, "TerraformState")
-		if err != nil {
-			if strings.Contains(err.Error(), "ConfigItem not found") {
-				return nil
-			}
-			return fmt.Errorf("Failed to fetch terraform lock: %w", err)
-		}
-
-		state = record.Value
-		return nil
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return state, nil
+func GetTerraformState(s *state.State, name string) (string, error) {
+	tfstateKey := tfstatePrefix + name
+	state, err := GetConfig(s, tfstateKey)
+	return state, err
 }
 
 // UpdateTerraformState updates the terraform state record in the database
-func UpdateTerraformState(s *state.State, state string) error {
-	c := database.ConfigItem{Key: "TerraformState", Value: state}
+func UpdateTerraformState(s *state.State, name string, lockID string, state string) (types.Lock, error) {
+	var dbLock types.Lock
 
-	// Add state to the database.
-	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
-		err := database.UpdateConfigItem(ctx, tx, "TerraformState", c)
-		if err != nil && strings.Contains(err.Error(), "ConfigItem not found") {
-			_, err = database.CreateConfigItem(ctx, tx, c)
-		}
-		if err != nil {
-			return fmt.Errorf("Failed to record terraform state: %w", err)
-		}
-
-		return nil
-	})
+	tflockKey := tflockPrefix + name
+	lockInDb, err := GetConfig(s, tflockKey)
 	if err != nil {
-		return err
+		return dbLock, err
 	}
 
-	return nil
+	err = json.Unmarshal([]byte(lockInDb), &dbLock)
+	if err != nil {
+		return dbLock, err
+	}
+
+	if lockID != dbLock.ID {
+		return dbLock, api.StatusErrorf(http.StatusConflict, "Conflict in Lock ID")
+	}
+
+	tfstateKey := tfstatePrefix + name
+	err = UpdateConfig(s, tfstateKey, state)
+	if err != nil {
+		return dbLock, err
+	}
+
+	return dbLock, nil
+}
+
+// DeleteTerraformState deletes the terraform state from the database
+func DeleteTerraformState(s *state.State, name string) error {
+	tfstateKey := tfstatePrefix + name
+	err := DeleteConfig(s, tfstateKey)
+	return err
 }
 
 // GetTerraformLock returns the terraform lock from the database
-func GetTerraformLock(s *state.State) (string, error) {
-	lock := "{}"
-
-	// Get the lock from the database.
-	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
-		record, err := database.GetConfigItem(ctx, tx, "TerraformLock")
-		if err != nil {
-			if strings.Contains(err.Error(), "ConfigItem not found") {
-				return nil
-			}
-			return fmt.Errorf("Failed to fetch terraform lock: %w", err)
-		}
-
-		lock = record.Value
-		return nil
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return lock, nil
+func GetTerraformLock(s *state.State, name string) (string, error) {
+	tflockKey := tflockPrefix + name
+	lock, err := GetConfig(s, tflockKey)
+	return lock, err
 }
 
 // UpdateTerraformLock updates the terraform lock record in the database
-func UpdateTerraformLock(s *state.State, lock string) error {
-	c := database.ConfigItem{Key: "TerraformLock", Value: lock}
+func UpdateTerraformLock(s *state.State, name string, lock string) (types.Lock, error) {
+	var reqLock types.Lock
+	var dbLock types.Lock
 
-	// Add lock to the database.
-	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
-		err := database.UpdateConfigItem(ctx, tx, "TerraformLock", c)
-		if err != nil && strings.Contains(err.Error(), "ConfigItem not found") {
-			_, err = database.CreateConfigItem(ctx, tx, c)
-		}
-		if err != nil {
-			return fmt.Errorf("Failed to record terraform lock: %w", err)
-		}
-
-		return nil
-	})
+	err := json.Unmarshal([]byte(lock), &reqLock)
 	if err != nil {
-		return err
+		return dbLock, err
 	}
 
-	return nil
+	tflockKey := tflockPrefix + name
+	lockInDb, err := GetConfig(s, tflockKey)
+	if err != nil {
+		if err, ok := err.(api.StatusError); ok {
+			// No Lock exists, add lock details in DB
+			if err.Status() == http.StatusNotFound {
+				j, err := json.Marshal(reqLock)
+				if err != nil {
+					return dbLock, err
+				}
+
+				err = UpdateConfig(s, tflockKey, string(j))
+				return dbLock, err
+			}
+		}
+		return dbLock, err
+	}
+
+	err = json.Unmarshal([]byte(lockInDb), &dbLock)
+	if err != nil {
+		return dbLock, err
+	}
+
+	// If the lock from DB and request are same, send http 423
+	if dbLock.ID == reqLock.ID && dbLock.Operation == reqLock.Operation && dbLock.Who == reqLock.Who {
+		return dbLock, api.StatusErrorf(http.StatusLocked, "Already locked with same ID")
+	}
+
+	// Already locked and request has different lockid, send http 409
+	return dbLock, api.StatusErrorf(http.StatusConflict, "Conflict in Lock ID")
+}
+
+// DeleteTerraformLock deletes the terraform lock from the database
+func DeleteTerraformLock(s *state.State, name string, lock string) (types.Lock, error) {
+	var reqLock types.Lock
+	var dbLock types.Lock
+
+	err := json.Unmarshal([]byte(lock), &reqLock)
+	if err != nil {
+		return dbLock, err
+	}
+
+	tflockKey := tflockPrefix + name
+	lockInDb, err := GetConfig(s, tflockKey)
+	if err != nil {
+		if err, ok := err.(api.StatusError); ok {
+			// No Lock exists to unlock, send 200: OK
+			if err.Status() == http.StatusNotFound {
+				return dbLock, nil
+			}
+		}
+		return dbLock, err
+	}
+
+	err = json.Unmarshal([]byte(lockInDb), &dbLock)
+	if err != nil {
+		return dbLock, err
+	}
+
+	// If the lock from DB and request are same, clear the lock from DB
+	if dbLock.ID == reqLock.ID && dbLock.Operation == reqLock.Operation && dbLock.Who == reqLock.Who {
+		err = DeleteConfig(s, tflockKey)
+		return dbLock, err
+	}
+
+	// Request has different lock id than in database, send http 409
+	return dbLock, api.StatusErrorf(http.StatusConflict, "Conflict in Lock ID")
 }

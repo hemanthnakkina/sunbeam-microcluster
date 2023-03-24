@@ -1,21 +1,22 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	"github.com/canonical/microcluster/rest"
 	"github.com/canonical/microcluster/state"
+	"github.com/gorilla/mux"
 	"github.com/lxc/lxd/lxd/response"
 	"github.com/lxc/lxd/lxd/util"
+	"github.com/lxc/lxd/shared/api"
 
-	"github.com/openstack-snaps/sunbeam-microcluster/api/types"
 	"github.com/openstack-snaps/sunbeam-microcluster/sunbeam"
 )
 
-// /1.0/terraformstate endpoint.
+// /1.0/terraformstate/{name} endpoint.
 // The endpoints are basically to provide REST URLs to Terraform http
 // backend configuration to maintain Terraform state centrally with
 // locking mechanism.
@@ -26,29 +27,48 @@ import (
 // endpoints not to allow untrusted.
 // https://github.com/hashicorp/terraform/commit/75e5ae27a258122fe6bf122beb943324c69de5b1
 var terraformStateCmd = rest.Endpoint{
-	Path: "terraformstate",
+	Path: "terraformstate/{name}",
 
-	Get:  rest.EndpointAction{Handler: cmdStateGet, AllowUntrusted: true},
-	Post: rest.EndpointAction{Handler: cmdStatePost, AllowUntrusted: true},
+	Get:    rest.EndpointAction{Handler: cmdStateGet, AllowUntrusted: true},
+	Put:    rest.EndpointAction{Handler: cmdStatePut, AllowUntrusted: true},
+	Delete: rest.EndpointAction{Handler: cmdStateDelete, AllowUntrusted: true},
 }
 
-// /1.0/terraformlock endpoint.
+// /1.0/terraformlock/{name} endpoint.
 var terraformLockCmd = rest.Endpoint{
-	Path: "terraformlock",
+	Path: "terraformlock/{name}",
 
-	Get:  rest.EndpointAction{Handler: cmdLockGet, AllowUntrusted: true},
-	Post: rest.EndpointAction{Handler: cmdLockPost, AllowUntrusted: true},
+	Get: rest.EndpointAction{Handler: cmdLockGet, AllowUntrusted: true},
+	Put: rest.EndpointAction{Handler: cmdLockPut, AllowUntrusted: true},
 }
 
-// /1.0/terraformunlock endpoint.
+// /1.0/terraformunlock/{name} endpoint.
 var terraformUnlockCmd = rest.Endpoint{
-	Path: "terraformunlock",
+	Path: "terraformunlock/{name}",
 
-	Post: rest.EndpointAction{Handler: cmdUnlockPost, AllowUntrusted: true},
+	Put: rest.EndpointAction{Handler: cmdUnlockPut, AllowUntrusted: true},
 }
 
-func cmdStateGet(s *state.State, _ *http.Request) response.Response {
-	state, err := sunbeam.GetTerraformState(s)
+func cmdStateGet(s *state.State, r *http.Request) response.Response {
+	var name string
+
+	name, err := url.PathUnescape(mux.Vars(r)["name"])
+	if err != nil {
+		return response.InternalError(err)
+	}
+
+	state, err := sunbeam.GetTerraformState(s, name)
+	if err != nil {
+		if err, ok := err.(api.StatusError); ok {
+			if err.Status() == http.StatusNotFound {
+				return response.NotFound(err)
+			}
+		}
+		return response.InternalError(err)
+	}
+
+	var jsonState map[string]interface{}
+	err = json.Unmarshal([]byte(state), &jsonState)
 	if err != nil {
 		return response.InternalError(err)
 	}
@@ -56,29 +76,83 @@ func cmdStateGet(s *state.State, _ *http.Request) response.Response {
 	// Just send state data instead of SyncResponse Json object as
 	// terraform expects just state data.
 	return response.ManualResponse(func(w http.ResponseWriter) error {
-		return util.WriteJSON(w, state, nil)
+		return util.WriteJSON(w, jsonState, nil)
 	})
 }
 
-func cmdStatePost(s *state.State, r *http.Request) response.Response {
-	b, err := ioutil.ReadAll(r.Body)
-	fmt.Println(string(b))
-	defer r.Body.Close()
+func cmdStatePut(s *state.State, r *http.Request) response.Response {
+	var name string
+
+	name, err := url.PathUnescape(mux.Vars(r)["name"])
 	if err != nil {
 		return response.InternalError(err)
 	}
 
-	err = sunbeam.UpdateTerraformState(s, string(b))
+	lockID := r.URL.Query().Get("ID")
+
+	var body bytes.Buffer
+	_, err = body.ReadFrom(r.Body)
 	if err != nil {
+		return response.InternalError(err)
+	}
+
+	dbLock, err := sunbeam.UpdateTerraformState(s, name, lockID, body.String())
+	if err != nil {
+		if err, ok := err.(api.StatusError); ok {
+			if err.Status() == http.StatusConflict {
+				jsonDBLock, err := json.Marshal(dbLock)
+				if err != nil {
+					return response.InternalError(err)
+				}
+
+				return response.ManualResponse(func(w http.ResponseWriter) error {
+					w.WriteHeader(http.StatusConflict)
+					return util.WriteJSON(w, jsonDBLock, nil)
+				})
+			}
+		}
 		return response.InternalError(err)
 	}
 
 	return response.EmptySyncResponse
 }
 
-func cmdLockGet(s *state.State, _ *http.Request) response.Response {
-	lock, err := sunbeam.GetTerraformLock(s)
+func cmdStateDelete(s *state.State, r *http.Request) response.Response {
+	var name string
+
+	name, err := url.PathUnescape(mux.Vars(r)["name"])
 	if err != nil {
+		return response.InternalError(err)
+	}
+
+	err = sunbeam.DeleteTerraformState(s, name)
+	if err != nil {
+		if err, ok := err.(api.StatusError); ok {
+			if err.Status() == http.StatusNotFound {
+				return response.NotFound(err)
+			}
+		}
+		return response.InternalError(err)
+	}
+
+	return response.EmptySyncResponse
+}
+
+func cmdLockGet(s *state.State, r *http.Request) response.Response {
+	var name string
+
+	name, err := url.PathUnescape(mux.Vars(r)["name"])
+	if err != nil {
+		return response.InternalError(err)
+	}
+
+	lock, err := sunbeam.GetTerraformLock(s, name)
+	if err != nil {
+		if err, ok := err.(api.StatusError); ok {
+			if err.Status() == http.StatusNotFound {
+				return response.NotFound(err)
+			}
+		}
 		return response.InternalError(err)
 	}
 
@@ -89,86 +163,75 @@ func cmdLockGet(s *state.State, _ *http.Request) response.Response {
 	})
 }
 
-func cmdLockPost(s *state.State, r *http.Request) response.Response {
-	var reqLock types.Lock
-	var dbLock types.Lock
+func cmdLockPut(s *state.State, r *http.Request) response.Response {
+	var name string
 
-	err := json.NewDecoder(r.Body).Decode(&reqLock)
+	name, err := url.PathUnescape(mux.Vars(r)["name"])
 	if err != nil {
 		return response.InternalError(err)
 	}
 
-	lockInDb, err := sunbeam.GetTerraformLock(s)
+	var body bytes.Buffer
+	_, err = body.ReadFrom(r.Body)
 	if err != nil {
 		return response.InternalError(err)
 	}
 
-	err = json.Unmarshal([]byte(lockInDb), &dbLock)
+	dbLock, err := sunbeam.UpdateTerraformLock(s, name, body.String())
 	if err != nil {
-		return response.InternalError(err)
-	}
-
-	if dbLock.ID == "" {
-		j, err := json.Marshal(reqLock)
-		if err != nil {
-			return response.InternalError(err)
+		if err, ok := err.(api.StatusError); ok {
+			jsonDBLock, err1 := json.Marshal(dbLock)
+			if err1 != nil {
+				return response.InternalError(err1)
+			}
+			if err.Status() == http.StatusLocked {
+				return response.ManualResponse(func(w http.ResponseWriter) error {
+					w.WriteHeader(http.StatusLocked)
+					return util.WriteJSON(w, jsonDBLock, nil)
+				})
+			} else if err.Status() == http.StatusConflict {
+				return response.ManualResponse(func(w http.ResponseWriter) error {
+					w.WriteHeader(http.StatusConflict)
+					return util.WriteJSON(w, jsonDBLock, nil)
+				})
+			}
 		}
-
-		err = sunbeam.UpdateTerraformLock(s, string(j))
-		if err != nil {
-			return response.InternalError(err)
-		}
-
-		return response.EmptySyncResponse
+		return response.InternalError(err)
 	}
 
-	// If the lock from DB and request are same, send http 423
-	if dbLock.ID == reqLock.ID && dbLock.Operation == reqLock.Operation && dbLock.Who == reqLock.Who {
-		return response.ManualResponse(func(w http.ResponseWriter) error {
-			w.WriteHeader(http.StatusLocked)
-			return util.WriteJSON(w, nil, nil)
-		})
-	}
-
-	// Already locked and request has different lockid, send http 409
-	return response.ManualResponse(func(w http.ResponseWriter) error {
-		w.WriteHeader(http.StatusConflict)
-		return util.WriteJSON(w, nil, nil)
-	})
+	return response.EmptySyncResponse
 }
 
-func cmdUnlockPost(s *state.State, r *http.Request) response.Response {
-	var reqLock types.Lock
-	var dbLock types.Lock
+func cmdUnlockPut(s *state.State, r *http.Request) response.Response {
+	var name string
 
-	err := json.NewDecoder(r.Body).Decode(&reqLock)
+	name, err := url.PathUnescape(mux.Vars(r)["name"])
 	if err != nil {
 		return response.InternalError(err)
 	}
 
-	lockInDb, err := sunbeam.GetTerraformLock(s)
+	var body bytes.Buffer
+	_, err = body.ReadFrom(r.Body)
 	if err != nil {
 		return response.InternalError(err)
 	}
 
-	err = json.Unmarshal([]byte(lockInDb), &dbLock)
+	dbLock, err := sunbeam.DeleteTerraformLock(s, name, body.String())
 	if err != nil {
-		return response.InternalError(err)
-	}
-
-	// If the lock from DB and request are same, clear the lock from DB
-	if dbLock.ID == reqLock.ID && dbLock.Operation == reqLock.Operation && dbLock.Who == reqLock.Who {
-		err = sunbeam.UpdateTerraformLock(s, "{}")
-		if err != nil {
-			return response.InternalError(err)
+		if err, ok := err.(api.StatusError); ok {
+			jsonDBLock, err1 := json.Marshal(dbLock)
+			if err1 != nil {
+				return response.InternalError(err1)
+			}
+			if err.Status() == http.StatusConflict {
+				return response.ManualResponse(func(w http.ResponseWriter) error {
+					w.WriteHeader(http.StatusConflict)
+					return util.WriteJSON(w, jsonDBLock, nil)
+				})
+			}
 		}
-
-		return response.EmptySyncResponse
+		return response.InternalError(err)
 	}
 
-	// Request has different lock id than in database, send http 409
-	return response.ManualResponse(func(w http.ResponseWriter) error {
-		w.WriteHeader(http.StatusConflict)
-		return util.WriteJSON(w, nil, nil)
-	})
+	return response.EmptySyncResponse
 }
