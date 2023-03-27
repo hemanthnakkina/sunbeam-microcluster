@@ -32,8 +32,16 @@ var nodeCmd = rest.Endpoint{
 	Delete: rest.EndpointAction{Handler: cmdNodesDelete, ProxyTarget: true},
 }
 
-func cmdNodesGetAll(s *state.State, _ *http.Request) response.Response {
-	nodes, err := sunbeam.ListNodes(s)
+func cmdNodesGetAll(s *state.State, r *http.Request) response.Response {
+	var role *string
+
+	roleParam := r.URL.Query().Get("role")
+
+	if roleParam != "" {
+		role = &roleParam
+	}
+
+	nodes, err := sunbeam.ListNodes(s, role)
 	if err != nil {
 		return response.InternalError(err)
 	}

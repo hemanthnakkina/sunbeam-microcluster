@@ -11,13 +11,19 @@ import (
 	"github.com/openstack-snaps/sunbeam-microcluster/database"
 )
 
-// ListNodes return all the nodes
-func ListNodes(s *state.State) (types.Nodes, error) {
+// ListNodes return all the nodes, filterable by role (Optional)
+func ListNodes(s *state.State, role *string) (types.Nodes, error) {
 	nodes := types.Nodes{}
+
+	filters := make([]database.NodeFilter, 0)
+
+	if role != nil {
+		filters = append(filters, database.NodeFilter{Role: role})
+	}
 
 	// Get the nodes from the database.
 	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
-		records, err := database.GetNodes(ctx, tx)
+		records, err := database.GetNodes(ctx, tx, filters...)
 		if err != nil {
 			return fmt.Errorf("Failed to fetch nodes: %w", err)
 		}
