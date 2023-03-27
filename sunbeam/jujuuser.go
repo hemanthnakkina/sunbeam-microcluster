@@ -38,6 +38,24 @@ func ListJujuUsers(s *state.State) (types.JujuUsers, error) {
 	return users, nil
 }
 
+// GetJujuUser returns a JujuUser with the given name
+func GetJujuUser(s *state.State, name string) (types.JujuUser, error) {
+	jujuUser := types.JujuUser{}
+	err := s.Database.Transaction(s.Context, func(ctx context.Context, tx *sql.Tx) error {
+		record, err := database.GetJujuUser(ctx, tx, name)
+		if err != nil {
+			return err
+		}
+
+		jujuUser.Username = record.Username
+		jujuUser.Token = record.Token
+
+		return nil
+	})
+
+	return jujuUser, err
+}
+
 // AddJujuUser adds a Jujuuser to the database
 func AddJujuUser(s *state.State, name string, token string) error {
 	// Add juju user to the database.

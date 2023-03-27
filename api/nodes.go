@@ -19,7 +19,7 @@ import (
 var nodesCmd = rest.Endpoint{
 	Path: "nodes",
 
-	Get:  rest.EndpointAction{Handler: cmdNodesGet, ProxyTarget: true},
+	Get:  rest.EndpointAction{Handler: cmdNodesGetAll, ProxyTarget: true},
 	Post: rest.EndpointAction{Handler: cmdNodesPost, ProxyTarget: true},
 }
 
@@ -27,12 +27,12 @@ var nodesCmd = rest.Endpoint{
 var nodeCmd = rest.Endpoint{
 	Path: "nodes/{name}",
 
-	Get:    rest.EndpointAction{Handler: cmdNodeGet, ProxyTarget: true},
+	Get:    rest.EndpointAction{Handler: cmdNodesGet, ProxyTarget: true},
 	Put:    rest.EndpointAction{Handler: cmdNodesPut, ProxyTarget: true},
 	Delete: rest.EndpointAction{Handler: cmdNodesDelete, ProxyTarget: true},
 }
 
-func cmdNodesGet(s *state.State, _ *http.Request) response.Response {
+func cmdNodesGetAll(s *state.State, _ *http.Request) response.Response {
 	nodes, err := sunbeam.ListNodes(s)
 	if err != nil {
 		return response.InternalError(err)
@@ -41,7 +41,7 @@ func cmdNodesGet(s *state.State, _ *http.Request) response.Response {
 	return response.SyncResponse(true, nodes)
 }
 
-func cmdNodeGet(s *state.State, r *http.Request) response.Response {
+func cmdNodesGet(s *state.State, r *http.Request) response.Response {
 	var name string
 	name, err := url.PathUnescape(mux.Vars(r)["name"])
 	if err != nil {
