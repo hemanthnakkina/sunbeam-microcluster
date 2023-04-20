@@ -12,6 +12,7 @@ import (
 
 const tfstatePrefix = "tfstate-"
 const tflockPrefix = "tflock-"
+const tfvarsPrefix = "tfvars-"
 
 // GetTerraformState returns the terraform state from the database
 func GetTerraformState(s *state.State, name string) (string, error) {
@@ -139,4 +140,25 @@ func DeleteTerraformLock(s *state.State, name string, lock string) (types.Lock, 
 
 	// Request has different lock id than in database, send http 409
 	return dbLock, api.StatusErrorf(http.StatusConflict, "Conflict in Lock ID")
+}
+
+// GetTerraformVars returns the terraform variables from the database
+func GetTerraformVars(s *state.State, name string) (string, error) {
+        tfvarsKey := tfvarsPrefix + name
+        vars, err := GetConfig(s, tfvarsKey)
+        return vars, err
+}
+
+// UpdateTerraformVars updates the terraform vars record in the database
+func UpdateTerraformVars(s *state.State, name string, vars string) error {
+        tfvarsKey := tfvarsPrefix + name
+	err := UpdateConfig(s, tfvarsKey, vars)
+	return err
+}
+
+// DeleteTerraformVars deletes the terraform vars record in the database
+func DeleteTerraformVars(s *state.State, name string) error {
+        tfvarsKey := tfvarsPrefix + name
+	err := DeleteConfig(s, tfvarsKey)
+        return err
 }

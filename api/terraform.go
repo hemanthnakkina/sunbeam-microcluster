@@ -49,6 +49,14 @@ var terraformUnlockCmd = rest.Endpoint{
 	Put: rest.EndpointAction{Handler: cmdUnlockPut, AllowUntrusted: true},
 }
 
+var terraformVarsCmd = rest.Endpoint{
+	Path: "terraformvars/{name}",
+
+        Get:    rest.EndpointAction{Handler: cmdVarsGet, AllowUntrusted: true},
+        Put:    rest.EndpointAction{Handler: cmdVarsPut, AllowUntrusted: true},
+        Delete: rest.EndpointAction{Handler: cmdVarsDelete, AllowUntrusted: true},
+}
+
 func cmdStateGet(s *state.State, r *http.Request) response.Response {
 	var name string
 
@@ -234,4 +242,78 @@ func cmdUnlockPut(s *state.State, r *http.Request) response.Response {
 	}
 
 	return response.EmptySyncResponse
+}
+
+func cmdVarsGet(s *state.State, r *http.Request) response.Response {
+        var name string
+
+        name, err := url.PathUnescape(mux.Vars(r)["name"])
+        if err != nil {
+                return response.InternalError(err)
+        }
+
+        vars, err := sunbeam.GetTerraformVars(s, name)
+        if err != nil {
+                if err, ok := err.(api.StatusError); ok {
+                        if err.Status() == http.StatusNotFound {
+                                return response.NotFound(err)
+                        }
+                }
+                return response.InternalError(err)
+        }
+
+        var jsonVars map[string]interface{}
+        err = json.Unmarshal([]byte(vars), &jsonVars)
+        if err != nil {
+                return response.InternalError(err)
+        }
+
+        // Just send state data instead of SyncResponse Json object as
+        // terraform expects just state data.
+        return response.ManualResponse(func(w http.ResponseWriter) error {
+                return util.WriteJSON(w, jsonVars, nil)
+        })
+}
+
+func cmdVarsPut(s *state.State, r *http.Request) response.Response {
+        var name string
+
+        name, err := url.PathUnescape(mux.Vars(r)["name"])
+        if err != nil {
+                return response.InternalError(err)
+        }
+
+        var body bytes.Buffer
+        _, err = body.ReadFrom(r.Body)
+        if err != nil {
+                return response.InternalError(err)
+        }
+
+        err = sunbeam.UpdateTerraformVars(s, name, body.String())
+        if err != nil {
+                return response.InternalError(err)
+        }
+
+        return response.EmptySyncResponse
+}
+
+func cmdVarsDelete(s *state.State, r *http.Request) response.Response {
+        var name string
+
+        name, err := url.PathUnescape(mux.Vars(r)["name"])
+        if err != nil {
+                return response.InternalError(err)
+        }
+
+        err = sunbeam.DeleteTerraformVars(s, name)
+        if err != nil {
+                if err, ok := err.(api.StatusError); ok {
+                        if err.Status() == http.StatusNotFound {
+                                return response.NotFound(err)
+                        }
+                }
+                return response.InternalError(err)
+        }
+
+        return response.EmptySyncResponse
 }
